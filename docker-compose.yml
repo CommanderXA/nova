@@ -1,0 +1,12 @@
+version: "${DOCKER_COMPOSE_VERSION}"
+services:
+
+  postgres:
+    container_name: "${POSTGRES_CONTAINER_NAME}"
+    image: postgres:${POSTGRES_VERSION}
+    environment:
+      POSTGRES_DB: "${DATABASE_NAME}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports:
+      - "${POSTGRES_PORT}:5432"
