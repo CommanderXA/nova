@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["commanderxa <art.ostrikov@gmail.com>"]
 publish = false
 readme = "README.md"
+license = "LICENSE.txt"
 
 [workspace]
 members = [".", "entity", "migration"]
