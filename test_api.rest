@@ -25,12 +25,12 @@ POST https://localhost:8085/api/auth/logout HTTP/1.1
 Content-Type: application/json
 
 {
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ"
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw"
 }
 
 ### Get users
 GET https://localhost:8085/api/users HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
 
 ### Get user 
 
@@ -39,7 +39,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZ
 
 ### Create a post
 POST https://localhost:8085/api/posts HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
 Content-Type: application/json
 
 {
@@ -49,12 +49,16 @@ Content-Type: application/json
 }
 
 ### Get a post
-GET https://localhost:8085/api/posts/3 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ
+GET https://localhost:8085/api/posts/1 HTTP/1.1
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+
+### Like a post
+POST https://localhost:8085/api/posts/1/like HTTP/1.1
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
 
 ### Edit a post
 PATCH https://localhost:8085/api/posts/2 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
 Content-Type: application/json
 
 {
@@ -63,4 +67,4 @@ Content-Type: application/json
 
 ### Delete a post
 DELETE https://localhost:8085/api/posts/3 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIxIiwicm9sZSI6InVzZXIiLCJleHAiOjE3MDk5MTQwNjV9.xxGx9amizuQ23YrogM2lnUAkqrjCDCM3eYTaj_CiI1IIXaUGHiGG3d1SCfY1_rZB66ROQNhRu-h_4DpnDACKDQ
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw

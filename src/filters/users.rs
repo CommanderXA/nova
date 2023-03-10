@@ -15,6 +15,7 @@ pub fn users(
     users_list(session.clone())
         .or(users_get_by_id(session.clone()))
         .or(users_by_username(session.clone()))
+        .or(subscribe(session.clone()))
         // .or(users_update(session.clone()))
         // .or(users_delete(session))
 }
@@ -50,6 +51,17 @@ pub fn users_get_by_id(
         .and(with_auth(session.clone(), Role::User))
         .and(with_session(session))
         .and_then(handlers::users::get_by_id)
+}
+
+/// POST /users/:uuid/subscribe
+pub fn subscribe(
+    session: Arc<Mutex<DatabaseConnection>>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "subscribe")
+        .and(warp::post())
+        .and(with_auth(session.clone(), Role::User))
+        .and(with_session(session))
+        .and_then(handlers::users::subscribe)
 }
 
 /// POST /users with JSON body

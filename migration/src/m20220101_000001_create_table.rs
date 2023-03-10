@@ -6,6 +6,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        /* ROLE */
         manager
             .create_table(
                 Table::create()
@@ -37,6 +38,7 @@ impl MigrationTrait for Migration {
                 .await?;
         }
 
+        /* USER */
         manager
             .create_table(
                 Table::create()
@@ -52,6 +54,18 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(User::Username).string().not_null())
                     .col(ColumnDef::new(User::Email).string().not_null())
                     .col(ColumnDef::new(User::Password).string().not_null())
+                    .col(
+                        ColumnDef::new(User::Followers)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
+                    .col(
+                        ColumnDef::new(User::Following)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .col(
                         ColumnDef::new(User::Role)
                             .tiny_integer()
@@ -76,6 +90,50 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        /* SUBSCRIBER */
+        manager
+            .create_table(
+                Table::create()
+                    .table(Subscriber::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(Subscriber::UserId).integer().not_null())
+                    .col(
+                        ColumnDef::new(Subscriber::SubscriberId)
+                            .integer()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Subscriber::CreatedAt)
+                            .timestamp()
+                            .not_null()
+                            .extra("DEFAULT CURRENT_TIMESTAMP".to_string()),
+                    )
+                    .foreign_key(
+                        ForeignKeyCreateStatement::new()
+                            .name("fk__user__to__user")
+                            .from_col(Subscriber::UserId)
+                            .to_col(User::Id)
+                            .from_tbl(Subscriber::Table)
+                            .to_tbl(User::Table),
+                    )
+                    .foreign_key(
+                        ForeignKeyCreateStatement::new()
+                            .name("fk__subscriber__to__user")
+                            .from_col(Subscriber::SubscriberId)
+                            .to_col(User::Id)
+                            .from_tbl(Subscriber::Table)
+                            .to_tbl(User::Table),
+                    )
+                    .primary_key(
+                        Index::create()
+                            .col(Subscriber::UserId)
+                            .col(Subscriber::SubscriberId),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        /* POST */
         manager
             .create_table(
                 Table::create()
@@ -124,17 +182,13 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        /* POST_LIKE */
         manager
             .create_table(
                 Table::create()
                     .table(PostLike::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(PostLike::LikeUserId)
-                            .integer()
-                            .primary_key()
-                            .not_null(),
-                    )
+                    .col(ColumnDef::new(PostLike::LikeUserId).integer().not_null())
                     .col(ColumnDef::new(PostLike::PostId).integer().not_null())
                     .col(
                         ColumnDef::new(PostLike::CreatedAt)
@@ -150,10 +204,16 @@ impl MigrationTrait for Migration {
                             .from_tbl(PostLike::Table)
                             .to_tbl(User::Table),
                     )
+                    .primary_key(
+                        Index::create()
+                            .col(PostLike::PostId)
+                            .col(PostLike::LikeUserId),
+                    )
                     .to_owned(),
             )
             .await?;
 
+        /* SESSION */
         manager
             .create_table(
                 Table::create()
@@ -199,6 +259,15 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .drop_table(
+                Table::drop()
+                    .if_exists()
+                    .table(Subscriber::Table)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .drop_table(Table::drop().if_exists().table(User::Table).to_owned())
             .await?;
 
@@ -215,7 +284,17 @@ enum User {
     Username,
     Email,
     Password,
+    Followers,
+    Following,
     Role,
+    CreatedAt,
+}
+
+#[derive(Iden)]
+enum Subscriber {
+    Table,
+    UserId,
+    SubscriberId,
     CreatedAt,
 }
 

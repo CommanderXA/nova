@@ -116,7 +116,7 @@ pub async fn add_jwt_session(
     let user = user.to_owned();
 
     let token = generate_jwt(
-        &user.id.to_string(),
+        user.id,
         Role::from_u8(user.role.clone() as u8).unwrap(),
     );
     let token = token.unwrap();

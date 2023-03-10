@@ -12,13 +12,13 @@ const BEARER: &str = "Bearer ";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,
+    pub sub: usize,
     pub role: String,
     pub exp: usize,
 }
 
 /// Creates JWT
-pub fn generate_jwt(uid: &str, role: Role) -> Result<String, JWTError> {
+pub fn generate_jwt(uid: i32, role: Role) -> Result<String, JWTError> {
     let seconds = 60 * 60 * 24 * 365;
     let expiration = Utc::now()
         .checked_add_signed(chrono::Duration::seconds(seconds))
@@ -26,7 +26,7 @@ pub fn generate_jwt(uid: &str, role: Role) -> Result<String, JWTError> {
         .timestamp();
 
     let claims = Claims {
-        sub: uid.to_owned(),
+        sub: uid as usize,
         role: role.to_string().to_owned(),
         exp: expiration as usize,
     };

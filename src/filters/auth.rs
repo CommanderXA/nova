@@ -32,7 +32,7 @@ pub fn login(
     warp::path!("login")
         .and(warp::post())
         .and(with_session(session))
-        .and(warp::body::json())
+        .and(json_body())
         .and_then(handlers::auth::login)
 }
 
@@ -70,7 +70,7 @@ fn json_body_logout() -> impl Filter<Extract = (LogoutRequest,), Error = warp::R
 pub async fn authorize(
     (role, headers): (Role, HeaderMap<HeaderValue>),
     session: Arc<Mutex<DatabaseConnection>>,
-) -> Result<(), Rejection> {
+) -> Result<i32, Rejection> {
     match jwt_from_header(&headers) {
         Ok(token) => {
             let decoded = check_token(session, token)
@@ -84,7 +84,7 @@ pub async fn authorize(
                 return Err(reject::custom(JWTError::NoPermissionError));
             }
 
-            Ok(())
+            Ok(decoded.claims.sub as i32)
         }
         Err(e) => return Err(reject::custom(e)),
     }

@@ -4,4 +4,5 @@ pub use super::post::Entity as Post;
 pub use super::post_like::Entity as PostLike;
 pub use super::role::Entity as Role;
 pub use super::session::Entity as Session;
+pub use super::subscriber::Entity as Subscriber;
 pub use super::user::Entity as User;

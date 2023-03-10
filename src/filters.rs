@@ -22,7 +22,7 @@ pub fn with_session(
 pub fn with_auth(
     session: Arc<Mutex<DatabaseConnection>>,
     role: Role,
-) -> impl Filter<Extract = ((),), Error = Rejection> + Clone {
+) -> impl Filter<Extract = (i32,), Error = Rejection> + Clone {
     headers_cloned()
         .map(move |headers: HeaderMap<HeaderValue>| (role.clone(), headers))
         .and(with_session(session))

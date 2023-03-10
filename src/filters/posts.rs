@@ -15,6 +15,7 @@ pub fn posts(
         .or(get(session.clone()))
         .or(update(session.clone()))
         .or(delete(session.clone()))
+        .or(like(session.clone()))
 }
 
 pub fn list(
@@ -46,6 +47,16 @@ pub fn get(
         .and(with_auth(session.clone(), Role::User))
         .and(with_session(session))
         .and_then(handlers::post::get_by_id)
+}
+
+pub fn like(
+    session: Arc<Mutex<DatabaseConnection>>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("posts" / i32 / "like")
+        .and(warp::post())
+        .and(with_auth(session.clone(), Role::User))
+        .and(with_session(session))
+        .and_then(handlers::post::like)
 }
 
 pub fn update(

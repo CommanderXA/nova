@@ -1,14 +1,16 @@
 use std::{convert::Infallible, sync::Arc};
 
-use entity::{post, prelude::Post};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use entity::{post, post_like, prelude::Post};
+use sea_orm::{
+    ActiveModelTrait, DatabaseConnection, EntityTrait, ModelTrait, Set, TransactionTrait,
+};
 use tokio::sync::Mutex;
 use warp::{hyper::StatusCode, Reply};
 
 use crate::requests::post::create::PostCreateRequest;
 
 pub async fn list(
-    _uid: (),
+    user_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<impl warp::Reply, Infallible> {
     let db = db_session.lock().await.to_owned();
@@ -19,7 +21,7 @@ pub async fn list(
 
 pub async fn get_by_id(
     id: i32,
-    _uid: (),
+    user_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<warp::reply::Response, Infallible> {
     // Just return a JSON object of user
@@ -47,8 +49,68 @@ pub async fn get_by_id(
     Ok(warp::reply::json(&post.unwrap()).into_response())
 }
 
+pub async fn like(
+    post_id: i32,
+    user_id: i32,
+    db_session: Arc<Mutex<DatabaseConnection>>,
+) -> Result<impl warp::Reply, Infallible> {
+    let db = db_session.lock().await.to_owned();
+
+    let post_like = post_like::Entity::find_by_id((user_id, post_id))
+        .one(&db)
+        .await;
+
+    if post_like.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    let post = post::Entity::find_by_id(post_id).one(&db).await;
+    if post.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    let post = post.unwrap();
+    if post.is_none() {
+        return Ok(StatusCode::NOT_FOUND);
+    }
+
+    let mut post_model: post::ActiveModel = post.unwrap().into();
+    match post_like.unwrap() {
+        Some(item) => {
+            let txn = db.begin().await.unwrap();
+            item.delete(&txn).await.unwrap();
+
+            post_model.likes = Set(post_model.likes.take().unwrap() - 1);
+            post_model.save(&txn).await.unwrap();
+
+            txn.commit().await.unwrap();
+
+            Ok(StatusCode::OK)
+        }
+        None => {
+            let txn = db.begin().await.unwrap();
+
+            post_like::ActiveModel {
+                post_id: Set(post_id),
+                like_user_id: Set(user_id),
+                ..Default::default()
+            }
+            .insert(&txn)
+            .await
+            .unwrap();
+
+            post_model.likes = Set(post_model.likes.take().unwrap() + 1);
+            post_model.save(&txn).await.unwrap();
+
+            txn.commit().await.unwrap();
+
+            Ok(StatusCode::CREATED)
+        }
+    }
+}
+
 pub async fn create(
-    _uid: (),
+    user_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
     req: PostCreateRequest,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -69,7 +131,7 @@ pub async fn create(
 
 pub async fn update(
     id: i32,
-    _uid: (),
+    user_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
     req: PostCreateRequest,
 ) -> Result<warp::reply::Response, Infallible> {
@@ -112,7 +174,7 @@ pub async fn update(
 
 pub async fn delete(
     id: i32,
-    _uid: (),
+    user_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<warp::reply::Response, Infallible> {
     // Just return a JSON object of user
