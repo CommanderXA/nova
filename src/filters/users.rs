@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use entity::user::Model as User;
 use sea_orm::DatabaseConnection;
 use tokio::sync::Mutex;
 use warp::Filter;
@@ -15,9 +14,11 @@ pub fn users(
     users_list(session.clone())
         .or(users_get_by_id(session.clone()))
         .or(users_by_username(session.clone()))
-        .or(subscribe(session.clone()))
-        // .or(users_update(session.clone()))
-        // .or(users_delete(session))
+        .or(follow(session.clone()))
+        .or(get_user_followers(session.clone()))
+        .or(get_user_following(session.clone()))
+    // .or(users_update(session.clone()))
+    // .or(users_delete(session))
 }
 
 /// GET /users
@@ -53,18 +54,40 @@ pub fn users_get_by_id(
         .and_then(handlers::users::get_by_id)
 }
 
-/// POST /users/:uuid/subscribe
-pub fn subscribe(
+/// POST /users/:uuid/follow
+pub fn follow(
     session: Arc<Mutex<DatabaseConnection>>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("users" / i32 / "subscribe")
+    warp::path!("users" / i32 / "follow")
         .and(warp::post())
         .and(with_auth(session.clone(), Role::User))
         .and(with_session(session))
-        .and_then(handlers::users::subscribe)
+        .and_then(handlers::users::follow)
 }
 
-/// POST /users with JSON body
+/// GET /users/:uuid/followers
+pub fn get_user_followers(
+    session: Arc<Mutex<DatabaseConnection>>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "followers")
+        .and(warp::get())
+        .and(with_auth(session.clone(), Role::User))
+        .and(with_session(session))
+        .and_then(handlers::users::get_user_followers)
+}
+
+/// GET /users/:uuid/following
+pub fn get_user_following(
+    session: Arc<Mutex<DatabaseConnection>>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("users" / i32 / "following")
+        .and(warp::get())
+        .and(with_auth(session.clone(), Role::User))
+        .and(with_session(session))
+        .and_then(handlers::users::get_user_following)
+}
+
+//// POST /users with JSON body
 // pub fn users_create(
 //     session: Arc<Mutex<DatabaseConnection>>,
 // ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -75,7 +98,7 @@ pub fn subscribe(
 //         .and_then(handlers::users::create)
 // }
 
-/// PUT /users/:id with JSON body
+//// PUT /users/:id with JSON body
 // pub fn users_update(
 //     session: Arc<Mutex<DatabaseConnection>>,
 // ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -87,7 +110,7 @@ pub fn subscribe(
 //         .and_then(handlers::users::update)
 // }
 
-/// DELETE /users/:id
+//// DELETE /users/:id
 // pub fn users_delete(
 //     session: Arc<Mutex<DatabaseConnection>>,
 // ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -102,8 +125,8 @@ pub fn subscribe(
 //         .and_then(handlers::users::delete)
 // }
 
-pub fn json_body() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Clone {
-    // When accepting a body, we want a JSON body
-    // (and to reject huge payloads)...
-    warp::body::content_length_limit(1024 * 16).and(warp::body::json())
-}
+// pub fn json_body() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Clone {
+//     // When accepting a body, we want a JSON body
+//     // (and to reject huge payloads)...
+//     warp::body::content_length_limit(1024 * 16).and(warp::body::json())
+// }

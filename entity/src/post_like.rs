@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "post_like")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub like_user_id: i32,
+    pub user_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
     pub post_id: i32,
     pub created_at: DateTime,
@@ -16,7 +16,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::LikeUserId",
+        from = "Column::UserId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"

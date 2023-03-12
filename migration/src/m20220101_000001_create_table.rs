@@ -90,20 +90,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        /* SUBSCRIBER */
+        /* FOLLOWER */
         manager
             .create_table(
                 Table::create()
-                    .table(Subscriber::Table)
+                    .table(Follower::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Subscriber::UserId).integer().not_null())
+                    .col(ColumnDef::new(Follower::UserId).integer().not_null())
+                    .col(ColumnDef::new(Follower::FollowerId).integer().not_null())
                     .col(
-                        ColumnDef::new(Subscriber::SubscriberId)
-                            .integer()
-                            .not_null(),
-                    )
-                    .col(
-                        ColumnDef::new(Subscriber::CreatedAt)
+                        ColumnDef::new(Follower::CreatedAt)
                             .timestamp()
                             .not_null()
                             .extra("DEFAULT CURRENT_TIMESTAMP".to_string()),
@@ -111,23 +107,23 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
                             .name("fk__user__to__user")
-                            .from_col(Subscriber::UserId)
+                            .from_col(Follower::UserId)
                             .to_col(User::Id)
-                            .from_tbl(Subscriber::Table)
+                            .from_tbl(Follower::Table)
                             .to_tbl(User::Table),
                     )
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
                             .name("fk__subscriber__to__user")
-                            .from_col(Subscriber::SubscriberId)
+                            .from_col(Follower::FollowerId)
                             .to_col(User::Id)
-                            .from_tbl(Subscriber::Table)
+                            .from_tbl(Follower::Table)
                             .to_tbl(User::Table),
                     )
                     .primary_key(
                         Index::create()
-                            .col(Subscriber::UserId)
-                            .col(Subscriber::SubscriberId),
+                            .col(Follower::UserId)
+                            .col(Follower::FollowerId),
                     )
                     .to_owned(),
             )
@@ -188,7 +184,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(PostLike::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(PostLike::LikeUserId).integer().not_null())
+                    .col(ColumnDef::new(PostLike::UserId).integer().not_null())
                     .col(ColumnDef::new(PostLike::PostId).integer().not_null())
                     .col(
                         ColumnDef::new(PostLike::CreatedAt)
@@ -199,16 +195,12 @@ impl MigrationTrait for Migration {
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
                             .name("fk__post_like__to__user")
-                            .from_col(PostLike::LikeUserId)
+                            .from_col(PostLike::UserId)
                             .to_col(User::Id)
                             .from_tbl(PostLike::Table)
                             .to_tbl(User::Table),
                     )
-                    .primary_key(
-                        Index::create()
-                            .col(PostLike::PostId)
-                            .col(PostLike::LikeUserId),
-                    )
+                    .primary_key(Index::create().col(PostLike::PostId).col(PostLike::UserId))
                     .to_owned(),
             )
             .await?;
@@ -259,12 +251,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .drop_table(
-                Table::drop()
-                    .if_exists()
-                    .table(Subscriber::Table)
-                    .to_owned(),
-            )
+            .drop_table(Table::drop().if_exists().table(Follower::Table).to_owned())
             .await?;
 
         manager
@@ -291,10 +278,10 @@ enum User {
 }
 
 #[derive(Iden)]
-enum Subscriber {
+enum Follower {
     Table,
     UserId,
-    SubscriberId,
+    FollowerId,
     CreatedAt,
 }
 
@@ -321,7 +308,7 @@ enum Post {
 enum PostLike {
     Table,
     PostId,
-    LikeUserId,
+    UserId,
     CreatedAt,
 }
 

@@ -1,64 +1,88 @@
-# USERS
+# AUTH
+
+@auth_token = Bearer {{$dotenv JWT_TOKEN}}
 
 ### Register
-POST https://localhost:8085/api/auth/register HTTP/1.1
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/auth/register HTTP/1.1
 Content-Type: application/json
 
 {
-    "username": "test",
+    "username": "new_user111",
     "email": "test@mail.com",
     "password": "123"
 }
 
 ### Login
-POST https://localhost:8085/api/auth/login HTTP/1.1
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-    "username": "test2",
+    "username": "new_user111",
     "email": "",
     "password": "123"
 }
 
 ### Logout
-POST https://localhost:8085/api/auth/logout HTTP/1.1
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/auth/logout HTTP/1.1
 Content-Type: application/json
 
 {
-    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw"
+    "token": "{{$dotenv JWT_TOKEN}}"
 }
 
+
+# USERS
+
 ### Get users
-GET https://localhost:8085/api/users HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/users HTTP/1.1
+Authorization: {{auth_token}}
 
 ### Get user 
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/users/2 HTTP/1.1
+Authorization: {{auth_token}}
+
+### Follow / Unfollow
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/users/2/follow HTTP/1.1
+Authorization: {{auth_token}}
+
+### View followers
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/users/2/followers HTTP/1.1
+Authorization: {{auth_token}}
+
+### View following
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/users/2/following HTTP/1.1
+Authorization: {{auth_token}}
 
 
 # POSTS
 
+### Get feed
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/feed HTTP/1.1
+Authorization: {{auth_token}}
+
+
 ### Create a post
-POST https://localhost:8085/api/posts HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/posts HTTP/1.1
+Authorization: {{auth_token}}
 Content-Type: application/json
 
 {
-    "user_id": 1,
+    "user_id": 2,
     "related_to_post": null,
-    "text": "Test text of the post"
+    "text": "Visiting NASA today!!"
 }
 
 ### Get a post
-GET https://localhost:8085/api/posts/1 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+GET https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/posts/1 HTTP/1.1
+Authorization: {{auth_token}}
 
 ### Like a post
-POST https://localhost:8085/api/posts/1/like HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+POST https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/posts/3/like HTTP/1.1
+Authorization: {{auth_token}}
 
 ### Edit a post
-PATCH https://localhost:8085/api/posts/2 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+PATCH https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/posts/2 HTTP/1.1
+Authorization: {{auth_token}}
 Content-Type: application/json
 
 {
@@ -66,5 +90,5 @@ Content-Type: application/json
 }
 
 ### Delete a post
-DELETE https://localhost:8085/api/posts/3 HTTP/1.1
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOjEsInJvbGUiOiJ1c2VyIiwiZXhwIjoxNzA5OTc3MDgzfQ.Jz4yC7wfb84yzqrbhP-sNpoF4GcRM577TZu5Gw6HVSpUHIORfUd2SfdptojIh8xOoJOSCSWNR3slCtTZ02Vtxw
+DELETE https://{{$dotenv HOST}}:{{$dotenv PORT}}/api/posts/3 HTTP/1.1
+Authorization: {{auth_token}}

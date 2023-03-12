@@ -1,18 +1,19 @@
 use std::{convert::Infallible, sync::Arc};
 
-use entity::{subscriber, user};
+use entity::{follower, user};
+
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter, Set,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DbBackend, EntityTrait, ModelTrait, Set,
+    Statement, TransactionTrait, QueryFilter,
 };
 use tokio::sync::Mutex;
 use warp::{hyper::StatusCode, Reply};
 
-use crate::errors::db::DbError;
+use crate::{errors::db::DbError, models::user::FollowersOfUser};
 
 pub async fn list(
     db_session: Arc<Mutex<DatabaseConnection>>,
-    user_id: i32,
+    _id_from_token: i32,
 ) -> Result<impl warp::Reply, Infallible> {
     // Just return a JSON array of users
     let db = db_session.lock().await.to_owned();
@@ -22,13 +23,13 @@ pub async fn list(
 }
 
 pub async fn get_by_id(
-    id: i32,
     user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<warp::reply::Response, Infallible> {
     // Just return a JSON object of user
     let db = db_session.lock().await.to_owned();
-    let user = user::Entity::find_by_id(id).one(&db).await;
+    let user = user::Entity::find_by_id(user_id).one(&db).await;
 
     if user.is_err() {
         return Ok(warp::reply::with_status(
@@ -53,7 +54,7 @@ pub async fn get_by_id(
 
 pub async fn get_by_username(
     username: String,
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<impl warp::Reply, Infallible> {
     // Just return a JSON object of user
@@ -106,7 +107,7 @@ pub async fn create(
 
 // pub async fn update(
 //     id: String,
-//     user_id: i32,
+//     _id_from_token: i32,
 //     user: user::Model,
 //     db_session: Arc<Mutex<DatabaseConnection>>,
 // ) -> Result<impl warp::Reply, Infallible> {
@@ -122,7 +123,7 @@ pub async fn create(
 
 // pub async fn delete(
 //     id: i32,
-//     user_id: i32,
+//     _id_from_token: i32,
 //     db_session: Arc<Mutex<DatabaseConnection>>,
 // ) -> Result<impl warp::Reply, Infallible> {
 //     let db = db_session.lock().await.to_owned();
@@ -140,6 +141,7 @@ pub async fn create(
 //     }
 // }
 
+#[allow(unused)]
 pub async fn check_user_by_id(
     db_session: Arc<Mutex<DatabaseConnection>>,
     id: i32,
@@ -183,9 +185,9 @@ pub async fn check_user_by_username(
     Ok(())
 }
 
-pub async fn subscribe(
+pub async fn follow(
     user_id: i32,
-    subscriber_id: i32,
+    follower_id: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<StatusCode, Infallible> {
     let db = db_session.lock().await.to_owned();
@@ -195,20 +197,20 @@ pub async fn subscribe(
     if user.is_err() {
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     }
-    let subscriber = user::Entity::find_by_id(subscriber_id).one(&db).await;
-    if subscriber.is_err() {
+    let follower = user::Entity::find_by_id(follower_id).one(&db).await;
+    if follower.is_err() {
         return Ok(StatusCode::INTERNAL_SERVER_ERROR);
     }
     let user = user.unwrap();
     if user.is_none() {
         return Ok(StatusCode::BAD_REQUEST);
     }
-    let subscriber = subscriber.unwrap();
-    if subscriber.is_none() {
+    let follower = follower.unwrap();
+    if follower.is_none() {
         return Ok(StatusCode::BAD_REQUEST);
     }
 
-    let subscription = subscriber::Entity::find_by_id((user_id, subscriber_id))
+    let subscription = follower::Entity::find_by_id((user_id, follower_id))
         .one(&db)
         .await;
     if subscription.is_err() {
@@ -222,18 +224,18 @@ pub async fn subscribe(
             // Modifying users as well
             let mut user: user::ActiveModel = user.unwrap().into();
             user.followers = Set(user.followers.take().unwrap() - 1);
-            let mut subscriber: user::ActiveModel = subscriber.unwrap().into();
-            subscriber.followers = Set(subscriber.following.take().unwrap() - 1);
+            let mut follower: user::ActiveModel = follower.unwrap().into();
+            follower.following = Set(follower.following.take().unwrap() - 1);
 
             // Starting the transaction
             let txn = db.begin().await.unwrap();
 
             item.delete(&txn).await.unwrap();
             user.update(&txn).await.unwrap();
-            subscriber.update(&txn).await.unwrap();
+            follower.update(&txn).await.unwrap();
 
             match txn.commit().await {
-                Ok(_) => Ok(StatusCode::CREATED),
+                Ok(_) => Ok(StatusCode::OK),
                 Err(_e) => Ok(StatusCode::INTERNAL_SERVER_ERROR),
             }
         }
@@ -242,15 +244,15 @@ pub async fn subscribe(
             // Modifying users as well
             let mut user: user::ActiveModel = user.unwrap().into();
             user.followers = Set(user.followers.take().unwrap() + 1);
-            let mut subscriber: user::ActiveModel = subscriber.unwrap().into();
-            subscriber.followers = Set(subscriber.following.take().unwrap() + 1);
+            let mut follower: user::ActiveModel = follower.unwrap().into();
+            follower.following = Set(follower.following.take().unwrap() + 1);
 
             // Starting the transaction
             let txn = db.begin().await.unwrap();
 
-            subscriber::ActiveModel {
+            follower::ActiveModel {
                 user_id: Set(user_id),
-                subscriber_id: Set(subscriber_id),
+                follower_id: Set(follower_id),
                 ..Default::default()
             }
             .insert(&txn)
@@ -258,7 +260,7 @@ pub async fn subscribe(
             .unwrap();
 
             user.update(&txn).await.unwrap();
-            subscriber.update(&txn).await.unwrap();
+            follower.update(&txn).await.unwrap();
 
             match txn.commit().await {
                 Ok(_) => Ok(StatusCode::CREATED),
@@ -268,10 +270,60 @@ pub async fn subscribe(
     }
 }
 
-// pub async fn get_id_by_token(
-//     db_session: Arc<Mutex<DatabaseConnection>>,
-//     token: &str,
-// ) -> Result<i32, DbError> {
-//     let db = db_session.lock().await.to_owned();
-//
-// }
+pub async fn get_user_followers(
+    user_id: i32,
+    _id_from_token: i32,
+    db_session: Arc<Mutex<DatabaseConnection>>,
+) -> Result<warp::reply::Response, Infallible> {
+    let db = db_session.lock().await.to_owned();
+
+    // Getting followers
+    let followers = user::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"SELECT "user".id, username FROM "user" 
+                    LEFT JOIN follower ON follower.follower_id = "user".id
+                    WHERE follower.user_id = $1
+                    ORDER BY follower.created_at DESC"#,
+            [user_id.into()],
+        ))
+        .into_model::<FollowersOfUser>()
+        .all(&db)
+        .await;
+
+    if followers.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
+    let followers = followers.unwrap();
+
+    Ok(warp::reply::json(&followers).into_response())
+}
+
+pub async fn get_user_following(
+    user_id: i32,
+    _id_from_token: i32,
+    db_session: Arc<Mutex<DatabaseConnection>>,
+) -> Result<warp::reply::Response, Infallible> {
+    let db = db_session.lock().await.to_owned();
+
+    // Getting following
+    let following = user::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"SELECT "user".id, username FROM "user" 
+                    LEFT JOIN follower ON follower.user_id = "user".id
+                    WHERE follower.follower_id = $1
+                    ORDER BY follower.created_at DESC"#,
+            [user_id.into()],
+        ))
+        .into_model::<FollowersOfUser>()
+        .all(&db)
+        .await;
+
+    if following.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
+    let following = following.unwrap();
+
+    Ok(warp::reply::json(&following).into_response())
+}

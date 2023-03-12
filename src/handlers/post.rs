@@ -1,8 +1,10 @@
 use std::{convert::Infallible, sync::Arc};
 
-use entity::{post, post_like, prelude::Post};
+use entity::{follower, post, post_like, prelude::Post};
+use migration::{Alias, DbErr, JoinType, Order};
 use sea_orm::{
-    ActiveModelTrait, DatabaseConnection, EntityTrait, ModelTrait, Set, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
+    QueryOrder, QuerySelect, RelationTrait, Set, TransactionTrait,
 };
 use tokio::sync::Mutex;
 use warp::{hyper::StatusCode, Reply};
@@ -10,7 +12,7 @@ use warp::{hyper::StatusCode, Reply};
 use crate::requests::post::create::PostCreateRequest;
 
 pub async fn list(
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<impl warp::Reply, Infallible> {
     let db = db_session.lock().await.to_owned();
@@ -19,9 +21,45 @@ pub async fn list(
     Ok(warp::reply::json(&posts))
 }
 
+pub async fn list_feed(
+    _id_from_token: i32,
+    db_session: Arc<Mutex<DatabaseConnection>>,
+) -> Result<warp::reply::Response, Infallible> {
+    let db = db_session.lock().await.to_owned();
+
+    let followings: Result<Vec<follower::Model>, DbErr> = follower::Entity::find()
+        .filter(follower::Column::FollowerId.eq(_id_from_token))
+        .all(&db)
+        .await;
+
+    if followings.is_err() {
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
+    }
+
+    let followings = followings
+        .unwrap()
+        .into_iter()
+        .map(|user| user.user_id)
+        .collect::<Vec<i32>>();
+
+    let posts: Vec<post::Model> = post::Entity::find()
+        .filter(post::Column::UserId.is_in(followings))
+        .join_as(
+            JoinType::LeftJoin,
+            post::Relation::User.def(),
+            Alias::new("user"),
+        )
+        .order_by(post::Column::CreatedAt, Order::Desc)
+        .all(&db)
+        .await
+        .unwrap();
+
+    Ok(warp::reply::json(&posts).into_response())
+}
+
 pub async fn get_by_id(
     id: i32,
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<warp::reply::Response, Infallible> {
     // Just return a JSON object of user
@@ -29,21 +67,12 @@ pub async fn get_by_id(
     let post = post::Entity::find_by_id(id).one(&db).await;
 
     if post.is_err() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::INTERNAL_SERVER_ERROR.as_str()),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
-        .into_response());
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
 
     let post = post.unwrap();
-
     if post.is_none() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::NOT_FOUND.as_str()),
-            StatusCode::NOT_FOUND,
-        )
-        .into_response());
+        return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
     Ok(warp::reply::json(&post.unwrap()).into_response())
@@ -51,12 +80,12 @@ pub async fn get_by_id(
 
 pub async fn like(
     post_id: i32,
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<impl warp::Reply, Infallible> {
     let db = db_session.lock().await.to_owned();
 
-    let post_like = post_like::Entity::find_by_id((user_id, post_id))
+    let post_like = post_like::Entity::find_by_id((_id_from_token, post_id))
         .one(&db)
         .await;
 
@@ -92,7 +121,7 @@ pub async fn like(
 
             post_like::ActiveModel {
                 post_id: Set(post_id),
-                like_user_id: Set(user_id),
+                user_id: Set(_id_from_token),
                 ..Default::default()
             }
             .insert(&txn)
@@ -110,7 +139,7 @@ pub async fn like(
 }
 
 pub async fn create(
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
     req: PostCreateRequest,
 ) -> Result<impl warp::Reply, Infallible> {
@@ -131,7 +160,7 @@ pub async fn create(
 
 pub async fn update(
     id: i32,
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
     req: PostCreateRequest,
 ) -> Result<warp::reply::Response, Infallible> {
@@ -141,20 +170,12 @@ pub async fn update(
     let post = post::Entity::find_by_id(id).one(&db).await;
 
     if post.is_err() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::INTERNAL_SERVER_ERROR.as_str()),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
-        .into_response());
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
 
     let post = post.unwrap();
     if post.is_none() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::NOT_FOUND.as_str()),
-            StatusCode::NOT_FOUND,
-        )
-        .into_response());
+        return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
     let mut post: post::ActiveModel = post.unwrap().into();
@@ -164,17 +185,13 @@ pub async fn update(
         Ok(post) => {
             Ok(warp::reply::with_status(warp::reply::json(&post), StatusCode::OK).into_response())
         }
-        Err(_e) => Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::INTERNAL_SERVER_ERROR.as_str()),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
-        .into_response()),
+        Err(_e) => Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response()),
     }
 }
 
 pub async fn delete(
     id: i32,
-    user_id: i32,
+    _id_from_token: i32,
     db_session: Arc<Mutex<DatabaseConnection>>,
 ) -> Result<warp::reply::Response, Infallible> {
     // Just return a JSON object of user
@@ -183,21 +200,13 @@ pub async fn delete(
     let post = post::Entity::find_by_id(id).one(&db).await;
 
     if post.is_err() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::INTERNAL_SERVER_ERROR.as_str()),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        )
-        .into_response());
+        return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
     }
 
     let post = post.unwrap();
 
     if post.is_none() {
-        return Ok(warp::reply::with_status(
-            warp::reply::json(&StatusCode::NOT_FOUND.as_str()),
-            StatusCode::NOT_FOUND,
-        )
-        .into_response());
+        return Ok(StatusCode::NOT_FOUND.into_response());
     }
 
     match Post::delete_by_id(id).exec(&db).await {

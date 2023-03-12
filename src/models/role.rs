@@ -17,6 +17,7 @@ impl Role {
         }
     }
 
+    #[allow(unused)]
     pub fn to_u8(role: Role) -> u8 {
         match role {
             Role::Admin => 1,

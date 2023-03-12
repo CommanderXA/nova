@@ -3,12 +3,12 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "subscriber")]
+#[sea_orm(table_name = "follower")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub user_id: i32,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub subscriber_id: i32,
+    pub follower_id: i32,
     pub created_at: DateTime,
 }
 
@@ -16,7 +16,7 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
-        from = "Column::SubscriberId",
+        from = "Column::FollowerId",
         to = "super::user::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"

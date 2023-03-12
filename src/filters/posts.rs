@@ -12,6 +12,7 @@ pub fn posts(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     create(session.clone())
         .or(list(session.clone()))
+        .or(list_feed(session.clone()))
         .or(get(session.clone()))
         .or(update(session.clone()))
         .or(delete(session.clone()))
@@ -26,6 +27,16 @@ pub fn list(
         .and(with_auth(session.clone(), Role::User))
         .and(with_session(session))
         .and_then(handlers::post::list)
+}
+
+pub fn list_feed(
+    session: Arc<Mutex<DatabaseConnection>>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("feed")
+        .and(warp::get())
+        .and(with_auth(session.clone(), Role::User))
+        .and(with_session(session))
+        .and_then(handlers::post::list_feed)
 }
 
 pub fn create(
